@@ -3,7 +3,7 @@ from flask import current_app as app
 from flask import request, jsonify
 
 from .logger import logger
-from .models import db, User, user_schema
+from .models import db, User
 
 
 @logger
