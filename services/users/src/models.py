@@ -1,12 +1,12 @@
 import datetime
-import uuid
 import os
+import uuid
 from flask_login import UserMixin
+from sqlalchemy.dialects.postgresql import UUID
 from werkzeug.security import (generate_password_hash,
                                check_password_hash)
 
 from . import db
-from sqlalchemy.dialects.postgresql import UUID
 
 
 class User(UserMixin, db.Model):

@@ -1,15 +1,16 @@
 import logging
-from .logger import logger
 from flask import current_app as app
 from flask import request, jsonify
-from .models import db, User
+
+from .logger import logger
+from .models import db, User, user_schema
 
 
 @logger
 @app.route('/users/healthcheck', methods=['GET'])
 def healthcheck():
     return jsonify({"code": "200",
-            "msg": "Hello from users"})
+            "msg": "Hello from users23"})
 
 
 @logger
@@ -32,3 +33,4 @@ def add_user():
 
     return {"code": 201,
             "msg": f"New user_id:{user.id} added"}
+
