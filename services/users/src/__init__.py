@@ -35,7 +35,6 @@ def create_app(test_config=False):
     db.init_app(app)
     with app.app_context():
         from . import routes
-
         if not test_config:
             logging.info(':::__init__.py::: Creating database')
             db.create_all()

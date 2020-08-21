@@ -5,9 +5,11 @@ from flask_login import UserMixin
 from sqlalchemy.dialects.postgresql import UUID
 from werkzeug.security import (generate_password_hash,
                                check_password_hash)
-
+from flask_marshmallow import Marshmallow
 from . import db
+from flask import current_app as app
 
+ma = Marshmallow(app)
 
 class User(UserMixin, db.Model):
     """User account model."""
@@ -59,5 +61,24 @@ class User(UserMixin, db.Model):
         """Check hashed password."""
         return check_password_hash(password, password)
 
+    @classmethod
+    def get_user_by_id(cls, id: int):
+        return db.session.query(cls).\
+                filter(cls.id == id).first()
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
+
+
+class UserSchema(ma.Schema):
+    class Meta:
+        fields = ("id", "alternative_id", "email", "account_activated", "created_on")
+
+    # # Smart hyperlinking
+    # _links = ma.Hyperlinks(
+    #     {"self": ma.URLFor("add_user", id="<id>"), "collection": ma.URLFor("users")}
+    # )
+
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)

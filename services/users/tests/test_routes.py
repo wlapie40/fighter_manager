@@ -1,4 +1,5 @@
 import json
+import time
 
 
 def test_healthcheck(client):
@@ -12,8 +13,8 @@ def test_add_user(app, client):
     with app.app_context():
         resp = client.post('/users/user', json=data)
         assert resp.status_code == 200
-        assert resp.json['code'] == 201
-        assert resp.json['msg'] == 'New user_id:1 added'
+        assert resp.json['account_activated'] == False
+        assert resp.json['id'] == 1
 
 
 def test_add_twice_same_user(app, client):
@@ -25,3 +26,11 @@ def test_add_twice_same_user(app, client):
         assert resp_2.status_code == 200
         assert resp_2.json['code'] == 409
         assert resp.json['msg'] == 'Conflict.Email: test1@gmail.com exists'
+
+
+def test_get_user(app, client):
+    with app.app_context():
+        get_user = client.get(f'/users/user/1')
+        assert get_user.json['account_activated'] == False
+        assert get_user.json['id'] == 1
+        assert get_user.json['email'] == "test1@gmail.com"
