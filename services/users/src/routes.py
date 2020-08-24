@@ -31,7 +31,7 @@ def add_user():
 
         return user_schema.jsonify(user)
     except KeyError as e:
-        return jsonify({"code": 404, "msg": f"{e}"})
+        return jsonify({"code": 404, "msg": f"KeyError: key {e} not found"})
 
 
 @logger
@@ -40,7 +40,7 @@ def get_user(user_id):
     user = User.get_user_by_id(id=user_id)
     if user:
         return user_schema.jsonify(user)
-    return jsonify({"code": 200, "msg": f"user_id {user_id} does not exists"})
+    return jsonify({"code": 204, "msg": f"user_id {user_id} does not exists"})
 
 
 @logger
@@ -51,7 +51,7 @@ def get_users():
       result = users_schema.dump(users)
       return jsonify(result)
   else:
-      return jsonify({"code": 200,
+      return jsonify({"code": 204,
               "msg": f"There are no users"})
 
 
@@ -64,5 +64,5 @@ def delete_user(user_id):
         db.session.commit()
         return user_schema.jsonify(user)
     else:
-        return jsonify({"code": 200, "msg": f"user_id {user_id} does not exists"})
+        return jsonify({"code": 204, "msg": f"user_id {user_id} does not exists"})
 
