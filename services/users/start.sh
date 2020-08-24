@@ -12,4 +12,5 @@ export USER_SCHEMA=local_cocoa_butter_users
 
 #python3 -m wsgi.py
 #flask run
-gunicorn --config gunicorn-cfg.py wsgi:app
+#gunicorn --config gunicorn-cfg.py wsgi:app
+gunicorn --certfile ca-crt.pem --keyfile ca.key --config gunicorn-cfg.py wsgi:app
