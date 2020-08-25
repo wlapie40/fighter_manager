@@ -1,14 +1,19 @@
-import datetime
+import base64
 import os
 import uuid
-from flask_login import UserMixin
-from sqlalchemy.dialects.postgresql import UUID
-from werkzeug.security import (generate_password_hash,
-                               check_password_hash)
-from flask_marshmallow import Marshmallow
-from . import db
+from datetime import datetime, timedelta
 from flask import current_app as app
 from flask import url_for
+from flask_login import UserMixin
+from flask_marshmallow import Marshmallow
+from sqlalchemy.dialects.postgresql import UUID
+from src.logger import logger
+from time import time
+from werkzeug.security import (generate_password_hash,
+                               check_password_hash)
+
+from . import db
+
 ma = Marshmallow(app)
 
 
@@ -21,48 +26,36 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer,
                            primary_key=True)
     alternative_id = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
-    email = db.Column(db.String(40),
-                           unique=True,
-                           nullable=False)
-    password = db.Column(db.String(200),
-                           primary_key=False,
-                           unique=False,
-                           nullable=False)
-    account_activated = db.Column(db.Boolean,
-                           default=False,
-                           nullable=False)
-    created_on = db.Column(db.DateTime,
-                           index=False,
-                           unique=False,
-                           nullable=True)
-    last_login = db.Column(db.DateTime,
-                           index=False,
-                           unique=False,
-                           nullable=True)
-
+    username = db.Column(db.String(64), index=True, unique=True)
+    email = db.Column(db.String(120), index=True, unique=True)
+    password_hash = db.Column(db.String(200), primary_key=False, unique=False, nullable=False)
+    account_activated = db.Column(db.Boolean, default=False, nullable=False)
+    created_on = db.Column(db.DateTime, index=False, unique=False, nullable=True)
+    last_login = db.Column(db.DateTime, index=False, unique=False, nullable=True)
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
 
-    def __init__(self, email, password):
+    def __init__(self, email, password, username):
         self.email = email
-        self.password = User.set_password(password)
+        self.username = username
+        self.password_hash = User.set_password(password)
         self.account_activated = False
-        self.created_on = datetime.datetime.now()
-        self.last_login = datetime.datetime.now()
+        self.created_on = datetime.now()
+        self.last_login = datetime.now()
 
-    def to_dict(self, include_email=False):
-        data = {
-            'id': self.id,
-            'alternative_id': self.alternative_id,
-            'account_activated': self.account_activated,
-            'last_login': self.last_login,
-            'created_on': self.created_on,
-            '_links': {
-            }
-        }
-        if include_email:
-            data['email'] = self.email
-        return data
+    # def to_dict(self, include_email=False):
+    #     data = {
+    #         'id': self.id,
+    #         'alternative_id': self.alternative_id,
+    #         'account_activated': self.account_activated,
+    #         'last_login': self.last_login,
+    #         'created_on': self.created_on,
+    #         '_links': {
+    #         }
+    #     }
+    #     if include_email:
+    #         data['email'] = self.email
+    #     return data
 
     @staticmethod
     def set_alternative_id():
@@ -74,10 +67,10 @@ class User(UserMixin, db.Model):
         """Create hashed password."""
         return generate_password_hash(password, method='sha256', salt_length=9)
 
-    @staticmethod
-    def check_password(password):
+    @logger
+    def check_password(self, password):
         """Check hashed password."""
-        return check_password_hash(password, password)
+        return check_password_hash(self.password_hash, password)
 
     @classmethod
     def get_user_by_id(cls, id: int):
@@ -85,7 +78,7 @@ class User(UserMixin, db.Model):
                 filter(cls.id == id).first()
 
     def get_token(self, expires_in=3600):
-        now = datetime.utcnow()
+        now = datetime.now()
         if self.token and self.token_expiration > now + timedelta(seconds=60):
             return self.token
         self.token = base64.b64encode(os.urandom(24)).decode('utf-8')
@@ -94,12 +87,12 @@ class User(UserMixin, db.Model):
         return self.token
 
     def revoke_token(self):
-        self.token_expiration = datetime.utcnow() - timedelta(seconds=1)
+        self.token_expiration = datetime.now() - timedelta(seconds=1)
 
     @staticmethod
     def check_token(token):
         user = User.query.filter_by(token=token).first()
-        if user is None or user.token_expiration < datetime.utcnow():
+        if user is None or user.token_expiration < datetime.now():
             return None
         return user
 
