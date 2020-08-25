@@ -8,8 +8,9 @@ from werkzeug.security import (generate_password_hash,
 from flask_marshmallow import Marshmallow
 from . import db
 from flask import current_app as app
-
+from flask import url_for
 ma = Marshmallow(app)
+
 
 class User(UserMixin, db.Model):
     """User account model."""
@@ -39,12 +40,29 @@ class User(UserMixin, db.Model):
                            unique=False,
                            nullable=True)
 
+    token = db.Column(db.String(32), index=True, unique=True)
+    token_expiration = db.Column(db.DateTime)
+
     def __init__(self, email, password):
         self.email = email
         self.password = User.set_password(password)
         self.account_activated = False
         self.created_on = datetime.datetime.now()
         self.last_login = datetime.datetime.now()
+
+    def to_dict(self, include_email=False):
+        data = {
+            'id': self.id,
+            'alternative_id': self.alternative_id,
+            'account_activated': self.account_activated,
+            'last_login': self.last_login,
+            'created_on': self.created_on,
+            '_links': {
+            }
+        }
+        if include_email:
+            data['email'] = self.email
+        return data
 
     @staticmethod
     def set_alternative_id():
@@ -65,6 +83,25 @@ class User(UserMixin, db.Model):
     def get_user_by_id(cls, id: int):
         return db.session.query(cls).\
                 filter(cls.id == id).first()
+
+    def get_token(self, expires_in=3600):
+        now = datetime.utcnow()
+        if self.token and self.token_expiration > now + timedelta(seconds=60):
+            return self.token
+        self.token = base64.b64encode(os.urandom(24)).decode('utf-8')
+        self.token_expiration = now + timedelta(seconds=expires_in)
+        db.session.add(self)
+        return self.token
+
+    def revoke_token(self):
+        self.token_expiration = datetime.utcnow() - timedelta(seconds=1)
+
+    @staticmethod
+    def check_token(token):
+        user = User.query.filter_by(token=token).first()
+        if user is None or user.token_expiration < datetime.utcnow():
+            return None
+        return user
 
     def __repr__(self):
         return '<User {}>'.format(self.username)

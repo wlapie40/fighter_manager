@@ -34,7 +34,8 @@ def create_app(test_config=False):
     logging.info(':::__init__.py::: Starting app')
     db.init_app(app)
     with app.app_context():
-        from . import routes
+        from .api import users
+        from .api import health_check
         if not test_config:
             logging.info(':::__init__.py::: Creating database')
             db.create_all()
