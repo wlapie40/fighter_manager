@@ -113,6 +113,9 @@ jwt-key
 run_local.sh
 Pipfile
 Pipfile.lock
-
+ca.key
+ca-crt.pem
+.env_test
+jwt-key.pub
 
 
