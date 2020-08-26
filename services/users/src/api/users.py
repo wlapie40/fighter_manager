@@ -1,10 +1,11 @@
 import logging
 from flask import current_app as app
-from flask import request, jsonify
+from flask import request, jsonify, abort
 
 from src.models import db, User, user_schema, users_schema
-from .errors import bad_request, error_response
-from .responses import response
+from src.api.errors import bad_request, error_response
+from src.api.responses import response
+from src import token_auth
 
 
 @app.route('/users', methods=['POST'])
@@ -28,8 +29,12 @@ def add_user():
 
 
 @app.route('/users/<user_id>', methods=['GET'])
+@token_auth.login_required
 def get_user(user_id):
     logging.info('users :: get_user :: get called')
+
+    if int(token_auth.current_user().id) != int(user_id):
+        abort(403)
 
     user = User.get_user_by_id(id=user_id)
     if user:
@@ -38,6 +43,7 @@ def get_user(user_id):
 
 
 @app.route('/users', methods=['GET'])
+@token_auth.login_required
 def get_users():
     logging.info('users :: get_users :: get called')
 
@@ -50,8 +56,12 @@ def get_users():
 
 
 @app.route('/users/<user_id>', methods=['DELETE'])
+@token_auth.login_required
 def delete_user(user_id):
     logging.info('users :: delete_user :: get called')
+
+    if int(token_auth.current_user().id) != int(user_id):
+        abort(403)
 
     user = User.get_user_by_id(id=user_id)
     if user:
@@ -62,20 +72,11 @@ def delete_user(user_id):
         return jsonify({"status_code": 204, "message": f"user_id {user_id} does not exists"})
 
 
-# @app.route('/users', methods=['GET'])
-# def get_users():
-#     logging.info('users :: get_users :: get called')
-#
-#     users = User.query.all()
-#     if users:
-#       result = users_schema.dump(users)
-#       return jsonify(result)
-#     else:
-#       return jsonify({"status_code": 204, "message": f"There are no users"})
-
-# @app.route('/users', methods=['PUT'])
-# def update_user():
+# @app.route('/users/<user_id>', methods=['PUT'])
+# def update_user(user_id):
 #     logging.info('users :: update_user :: get called')
+#    if token_auth.current_user().id != user_id:
+#         abort(403)
 #     content = request.json
 #     user = User.get_user_by_id(id=user_id)
 #     if not user:
