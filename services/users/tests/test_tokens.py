@@ -1,14 +1,18 @@
+import base64
 import json
 import time
 from requests.auth import _basic_auth_str
 
 
-def test_tokens(app, client):
-    data = {"email": "token_1@gmail.com",
-            "password": "admin1234",
-            "username": "token_1"}
-    with app.app_context():
-        client.post('/users', json=data)
-        resp = client.post('/users/tokens', headers={"Authorization": "Basic {'token_1', 'admin1234'}"})
-        print(resp)
-        print(resp.json)
+def test_tokens(client):
+    valid_credentials = base64.b64encode(b"john_conftest:admin1234").decode("utf-8")
+    resp = client.post('/users/tokens',
+                       headers={"Authorization": "Basic " + valid_credentials})
+    assert resp.status_code == 200
+
+
+def test_tokens_failed(client):
+    invalid_credentials = base64.b64encode(b"john_conftest:test1234").decode("utf-8")
+    resp = client.post('/users/tokens',
+                       headers={"Authorization": "Basic " + invalid_credentials})
+    assert resp.status_code == 401

@@ -23,10 +23,9 @@ class User(UserMixin, db.Model):
     __table_args__ = {'schema': f'{os.environ.get("USER_SCHEMA", None)}'}
     __tablename__ = 'user'
 
-    id = db.Column(db.Integer,
-                           primary_key=True)
-    alternative_id = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
-    username = db.Column(db.String(64), index=True, unique=True)
+    id = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False, primary_key=True)
+    account_type = db.Column(db.String(10), index=False, unique=False)
+    username = db.Column(db.String(64), index=True, unique=True, nullable=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(200), primary_key=False, unique=False, nullable=False)
     account_activated = db.Column(db.Boolean, default=False, nullable=False)
@@ -35,27 +34,14 @@ class User(UserMixin, db.Model):
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime)
 
-    def __init__(self, email, password, username):
+    def __init__(self, account_type, email, password, username):
+        self.account_type = account_type
+        self.account_activated = False
+        self.created_on = datetime.now()
         self.email = email
         self.username = username
         self.password_hash = User.set_password(password)
-        self.account_activated = False
-        self.created_on = datetime.now()
         self.last_login = datetime.now()
-
-    # def to_dict(self, include_email=False):
-    #     data = {
-    #         'id': self.id,
-    #         'alternative_id': self.alternative_id,
-    #         'account_activated': self.account_activated,
-    #         'last_login': self.last_login,
-    #         'created_on': self.created_on,
-    #         '_links': {
-    #         }
-    #     }
-    #     if include_email:
-    #         data['email'] = self.email
-    #     return data
 
     @staticmethod
     def set_alternative_id():
@@ -76,6 +62,11 @@ class User(UserMixin, db.Model):
     def get_user_by_id(cls, id: int):
         return db.session.query(cls).\
                 filter(cls.id == id).first()
+
+    @classmethod
+    def get_user_by_email(cls, email: str):
+        return db.session.query(cls).\
+                filter(cls.email == email).first()
 
     def get_token(self, expires_in=3600):
         now = datetime.now()
@@ -102,12 +93,7 @@ class User(UserMixin, db.Model):
 
 class UserSchema(ma.Schema):
     class Meta:
-        fields = ("id", "alternative_id", "email", "account_activated", "created_on")
-
-    # # Smart hyperlinking
-    # _links = ma.Hyperlinks(
-    #     {"self": ma.URLFor("add_user", id="<id>"), "collection": ma.URLFor("users")}
-    # )
+        fields = ("id", "email", "account_activated", "created_on")
 
 
 user_schema = UserSchema()
